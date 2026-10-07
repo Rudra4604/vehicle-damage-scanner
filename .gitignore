@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest and testing caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables and virtual environments
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Node / Frontend dependencies and caches
+node_modules/
+.npm/
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Runtime generated inference outputs (preserves outputs/.gitkeep)
+outputs/annotated_*
+outputs/upload_*
+
+# Full local dataset (excluded from GitHub due to ~2.83 GB size)
+dataset/

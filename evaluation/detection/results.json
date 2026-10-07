@@ -1,0 +1,85 @@
+{
+  "overall": {
+    "precision": 0.752,
+    "recall": 0.6857,
+    "f1_harmonic": 0.7173,
+    "f1_macro": 0.7147,
+    "map50": 0.7214,
+    "map50_95": 0.56,
+    "num_images": 374,
+    "total_instances": 785,
+    "device": "cpu"
+  },
+  "operating_point_notes": {
+    "iou_matching_threshold_eval": "0.50 (for mAP@0.5) and 0.50:0.95:0.05 (for mAP@0.5:0.95)",
+    "confidence_threshold_mAP": "0.001 (standard YOLO PR-curve integration threshold)",
+    "f1_methodology": "Object detection F1 is calculated from True Positives (IoU >= 0.5 with ground truth box of matching class), False Positives (IoU < 0.5 or duplicate detection on same GT), and False Negatives (unmatched GT boxes). Reported per-class F1 represents the optimal F1 operating point along the F1-Confidence curve. Overall F1 Harmonic is calculated as 2*P*R/(P+R) at the standard evaluation operating point (P=0.752, R=0.686). Overall F1 Macro is the unweighted arithmetic mean of optimal per-class F1 scores.",
+    "macro_averaging": "Unweighted mean across the 6 damage classes",
+    "micro_operating_point": {
+      "precision": 0.752,
+      "recall": 0.6857
+    }
+  },
+  "per_class": [
+    {
+      "class_id": 0,
+      "class_name": "dent",
+      "precision": 0.6362,
+      "recall": 0.5854,
+      "f1": 0.6098,
+      "map50": 0.6312,
+      "map50_95": 0.357,
+      "instances": 236
+    },
+    {
+      "class_id": 1,
+      "class_name": "scratch",
+      "precision": 0.5877,
+      "recall": 0.5668,
+      "f1": 0.5771,
+      "map50": 0.5947,
+      "map50_95": 0.3503,
+      "instances": 307
+    },
+    {
+      "class_id": 2,
+      "class_name": "crack",
+      "precision": 0.5749,
+      "recall": 0.4058,
+      "f1": 0.4757,
+      "map50": 0.4041,
+      "map50_95": 0.2044,
+      "instances": 70
+    },
+    {
+      "class_id": 3,
+      "class_name": "glass shatter",
+      "precision": 0.9087,
+      "recall": 0.9816,
+      "f1": 0.9437,
+      "map50": 0.9881,
+      "map50_95": 0.9094,
+      "instances": 71
+    },
+    {
+      "class_id": 4,
+      "class_name": "lamp broken",
+      "precision": 0.8399,
+      "recall": 0.7246,
+      "f1": 0.778,
+      "map50": 0.8116,
+      "map50_95": 0.6708,
+      "instances": 69
+    },
+    {
+      "class_id": 5,
+      "class_name": "tire flat",
+      "precision": 0.9645,
+      "recall": 0.8501,
+      "f1": 0.9037,
+      "map50": 0.8986,
+      "map50_95": 0.8684,
+      "instances": 32
+    }
+  ]
+}

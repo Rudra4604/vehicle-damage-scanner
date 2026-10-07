@@ -1,0 +1,11 @@
+{
+  "title": "Vehicle Damage Scanner",
+  "description": "Effortlessly analyze vehicle damage with AI-powered photo uploads, providing detailed assessments and confidence scores for automotive professionals.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

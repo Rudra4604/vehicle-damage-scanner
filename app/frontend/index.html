@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Vehicle Damage Scanner — Simple Car Inspection</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Material Symbols Outlined -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+
+  <!-- Tailwind CSS via CDN with customized Stitch design tokens -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#316342",
+            "primary-hover": "#264e34",
+            "primary-container": "#4a7c59",
+            "primary-fixed": "#b9efc5",
+            "primary-fixed-dim": "#9dd3aa",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#e1ffe5",
+            "on-primary-fixed": "#00210e",
+            "on-primary-fixed-variant": "#1e5031",
+            "secondary": "#515f74",
+            "secondary-container": "#d1e1fa",
+            "secondary-fixed": "#d4e4fc",
+            "secondary-fixed-dim": "#b8c8e0",
+            "on-secondary": "#ffffff",
+            "on-secondary-container": "#556479",
+            "on-secondary-fixed": "#0d1c2e",
+            "on-secondary-fixed-variant": "#39485c",
+            "tertiary": "#7c4f00",
+            "tertiary-container": "#9b660e",
+            "tertiary-fixed": "#ffddb5",
+            "tertiary-fixed-dim": "#fcba5f",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-container": "#fff5ed",
+            "surface": "#f9f9f6",
+            "surface-bright": "#f9f9f6",
+            "surface-dim": "#dadad7",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f4f4f1",
+            "surface-container": "#eeeeeb",
+            "surface-container-high": "#e8e8e5",
+            "surface-container-highest": "#e2e3e0",
+            "surface-variant": "#e2e3e0",
+            "on-surface": "#1a1c1b",
+            "on-surface-variant": "#414942",
+            "outline": "#717971",
+            "outline-variant": "#c1c9bf",
+            "background": "#f9f9f6",
+            "on-background": "#1a1c1b",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.75rem",
+            lg: "1rem",
+            xl: "1.25rem",
+            "2xl": "1.5rem",
+            full: "9999px",
+          },
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #f9f9f6;
+      color: #1a1c1b;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) skewX(-12deg); }
+      100% { transform: translateX(200%) skewX(-12deg); }
+    }
+    .animate-shimmer {
+      animation: shimmer 2s infinite;
+    }
+    /* Dropzone drag-over smooth interaction */
+    #dropzone {
+      transition: border-color 200ms ease, background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    }
+    .drag-over-active {
+      border-color: #316342 !important;
+      background-color: rgba(185, 239, 197, 0.25) !important;
+      transform: scale(1.008);
+    }
+    /* Preview appearance with subtle fade & gentle lift (180ms) */
+    @keyframes previewFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .preview-fade-in {
+      animation: previewFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* Smooth button transitions */
+    #btn-analyze {
+      transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
+    }
+    /* Prevent image dragging artifact */
+    img {
+      -webkit-user-drag: none;
+    }
+    /* Accessible motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col justify-between selection:bg-primary-fixed selection:text-on-primary-fixed">
+  <!-- ====================================================
+       PERSISTENT HEADER (Simple, Clean Automotive Style)
+       ==================================================== -->
+  <header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-md border-b border-surface-container-highest shadow-xs">
+    <div class="h-16 w-full max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 flex items-center justify-between">
+      
+      <!-- Brand Logo / Wordmark with small car icon -->
+      <a href="#" onclick="resetToUpload(event)" class="flex items-center gap-2.5 cursor-pointer group">
+        <div class="w-8 h-8 rounded-full bg-primary-fixed/60 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-[20px]">directions_car</span>
+        </div>
+        <span class="font-semibold text-[15px] text-on-surface tracking-tight leading-tight">Vehicle Damage Scanner</span>
+      </a>
+
+      <!-- Center Step Navigation Pill -->
+      <nav class="hidden sm:flex items-center gap-1 bg-surface-container-low px-1.5 py-1 rounded-full border border-surface-container text-[12px]">
+        <button id="nav-step-inspect" onclick="resetToUpload(event)" class="px-3.5 py-1 rounded-full font-semibold transition-all bg-primary-container text-on-primary-container shadow-xs">
+          Inspect
+        </button>
+        <button id="nav-step-analyzing" class="px-3.5 py-1 rounded-full font-medium text-on-surface-variant pointer-events-none transition-all">
+          Analyzing
+        </button>
+        <button id="nav-step-results" class="px-3.5 py-1 rounded-full font-medium text-on-surface-variant pointer-events-none transition-all">
+          Results
+        </button>
+      </nav>
+
+      <!-- Ready Status Indicator on the right -->
+      <div id="header-status-pill" class="flex items-center gap-1.5 bg-surface-container px-3 py-1 rounded-full border border-surface-container-highest shadow-xs">
+        <span id="header-status-dot" class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+        <span id="header-status-text" class="text-[11px] font-medium text-on-surface-variant">Ready</span>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ====================================================
+       MAIN VIEW CONTAINER (Wide responsive application workspace)
+       ==================================================== -->
+  <main class="w-full pt-20 sm:pt-24 pb-10 sm:pb-12 flex-1 flex flex-col items-center justify-start px-6 sm:px-10 lg:px-16">
+    <div class="w-full max-w-[1240px] mx-auto flex flex-col items-center">
+
+      <!-- ====================================================
+           SCREEN 1: UPLOAD / INSPECT VIEW
+           ==================================================== -->
+      <div id="view-upload" class="w-full flex flex-col items-center">
+        
+        <!-- Small friendly eyebrow / badge -->
+        <div class="inline-flex items-center gap-2 bg-primary-fixed/40 px-3.5 py-1 rounded-full mb-3 text-xs font-semibold text-on-primary-fixed-variant border border-primary-fixed/60 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+          <span>Automated Inspection</span>
+        </div>
+
+        <!-- Hero heading & supporting sentence -->
+        <div class="text-center px-4 mb-7 sm:mb-9">
+          <h1 class="text-3xl sm:text-4xl lg:text-[44px] font-bold text-on-surface tracking-tight leading-[1.15] mb-2.5">
+            Vehicle Damage Scanner
+          </h1>
+          <p class="text-base sm:text-[17px] text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
+            Upload an exterior photo of your car for an automated visual damage appraisal.
+          </p>
+        </div>
+
+        <!-- Global Error Banner -->
+        <div id="upload-error-banner" class="hidden w-full max-w-[1180px] mb-5 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-start justify-between gap-3 shadow-xs">
+          <div class="flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-error text-[20px] mt-0.5">error</span>
+            <div>
+              <p id="error-title" class="font-semibold text-sm text-error">Upload Error</p>
+              <p id="error-message" class="text-xs mt-0.5 leading-snug"></p>
+            </div>
+          </div>
+          <button type="button" onclick="dismissError()" class="text-error hover:opacity-70 p-0.5">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <!-- Main Inspection Workspace (Dominant ~1180px Application Panel) -->
+        <div class="w-full max-w-[1180px] bg-surface-container-lowest rounded-2xl p-6 sm:p-8 lg:p-9 shadow-xs border border-surface-container-highest transition-all duration-200">
+          
+          <!-- Interactive Drop Zone -->
+          <div id="dropzone" class="group relative w-full rounded-xl bg-surface-container-low/30 hover:bg-surface-container-low/60 transition-all duration-200 p-6 sm:p-8 lg:p-10 min-h-[320px] sm:min-h-[350px] lg:min-h-[360px] flex flex-col items-center justify-center text-center cursor-pointer border-2 border-dashed border-outline-variant/60 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 shadow-none" tabindex="0" onclick="triggerFileInput()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();triggerFileInput();}">
+            <input id="file-input" type="file" class="hidden" accept=".jpg,.jpeg,.png,.webp,.bmp,.tiff,.tif" onchange="handleFileSelect(event)"/>
+
+            <!-- Empty State Contents (Vertically Centered) -->
+            <div id="dropzone-empty-content" class="flex flex-col items-center justify-center w-full">
+              
+              <!-- Cute & simple automotive illustration (64-80px badge) -->
+              <div class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-primary-fixed/30 flex items-center justify-center mb-4 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary-fixed/40">
+                <svg class="w-11 h-11 sm:w-12 sm:h-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Car cabin fill & stroke -->
+                  <path d="M12 24L14.8 17.2C15.4 15.8 16.8 15 18.3 15H29.7C31.2 15 32.6 15.8 33.2 17.2L36 24" fill="#b9efc5" fill-opacity="0.35"/>
+                  <path d="M12 24L14.8 17.2C15.4 15.8 16.8 15 18.3 15H29.7C31.2 15 32.6 15.8 33.2 17.2L36 24" stroke="#316342" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Car body -->
+                  <path d="M7 24C6.4 24 6 24.4 6 25V31C6 31.6 6.4 32 7 32H10C10 30 11.8 28.5 14 28.5C16.2 28.5 18 30 18 32H30C30 30 31.8 28.5 34 28.5C36.2 28.5 38 30 38 32H41C41.6 32 42 31.6 42 31V25C42 24.4 41.6 24 41 24H7Z" fill="#316342" fill-opacity="0.1" stroke="#316342" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Window divider -->
+                  <line x1="24" y1="15.5" x2="24" y2="24" stroke="#316342" stroke-width="1.8" stroke-linecap="round"/>
+                  <!-- Wheels -->
+                  <circle cx="14" cy="32" r="3.5" fill="#316342"/>
+                  <circle cx="14" cy="32" r="1.5" fill="#f9f9f6"/>
+                  <circle cx="34" cy="32" r="3.5" fill="#316342"/>
+                  <circle cx="34" cy="32" r="1.5" fill="#f9f9f6"/>
+                  <!-- Small photo plus indicator badge -->
+                  <circle cx="35" cy="13" r="5" fill="#316342"/>
+                  <path d="M33 13H37M35 11V15" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+
+              <h2 class="text-xl sm:text-2xl text-on-surface font-bold mb-1.5 tracking-tight">
+                Drop a photo of your car here
+              </h2>
+              <p class="text-sm sm:text-base text-on-surface-variant mb-5">
+                or <span class="text-primary font-semibold underline underline-offset-3 hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-xs transition-colors duration-150">browse files</span> from your device
+              </p>
+
+              <div class="inline-flex items-center gap-2 bg-surface-container-low text-secondary text-xs sm:text-[13px] font-medium px-4 py-1.5 rounded-full border border-surface-container">
+                <span class="material-symbols-outlined text-[16px] text-secondary">image</span>
+                <span>Supports JPG, PNG, WEBP up to 25MB</span>
+              </div>
+            </div>
+
+            <!-- Preview State Overlay (Shown once a photo is chosen) -->
+            <div id="dropzone-preview-overlay" class="hidden w-full flex flex-col items-center preview-fade-in" onclick="event.stopPropagation()">
+              <div class="relative w-full h-64 sm:h-72 lg:h-80 rounded-xl overflow-hidden bg-surface-container-high/40 flex items-center justify-center border border-surface-container mb-4">
+                <img id="preview-image" alt="Selected vehicle photo preview" class="w-full h-full object-contain p-2 rounded-xl transition-transform duration-200"/>
+                <div class="absolute top-3 right-3 bg-surface-container-lowest/90 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-1.5 shadow-xs border border-surface-container">
+                  <span class="w-2 h-2 rounded-full bg-primary"></span>
+                  <span class="text-xs font-medium text-on-surface">Photo ready</span>
+                </div>
+              </div>
+
+              <div class="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-xl bg-primary-fixed/50 flex items-center justify-center text-primary shrink-0">
+                    <span class="material-symbols-outlined text-[20px]">photo</span>
+                  </div>
+                  <div class="flex flex-col min-w-0 text-left">
+                    <span id="preview-filename" class="text-sm sm:text-base font-semibold text-on-surface truncate max-w-[260px] sm:max-w-[400px]">vehicle.jpg</span>
+                    <span id="preview-filemeta" class="text-xs text-secondary">Loading details...</span>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-2 self-end sm:self-center">
+                  <button type="button" onclick="triggerFileInput(event)" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-[13px] font-medium text-on-surface hover:bg-surface-container active:scale-[0.98] border border-surface-container-highest transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                    <span class="material-symbols-outlined text-[16px] text-secondary">sync</span>
+                    <span>Change photo</span>
+                  </button>
+                  <button type="button" onclick="clearSelectedFile(event)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-[13px] font-medium text-secondary hover:text-error hover:bg-error-container/30 active:scale-[0.95] transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error focus-visible:ring-offset-1" title="Remove photo">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Primary Action CTA Button (Directly below dropzone, full width of workspace) -->
+          <div class="mt-5 sm:mt-6">
+            <button id="btn-analyze" type="button" disabled onclick="startAnalysis()" class="w-full h-14 rounded-xl bg-surface-container text-secondary/50 text-base sm:text-[17px] font-semibold flex items-center justify-center gap-2.5 sm:gap-3 border border-surface-container-highest cursor-not-allowed transition-all duration-200 select-none shadow-none focus-visible:outline-none">
+              <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+              <span id="btn-analyze-text">Analyze Damage</span>
+              <span class="material-symbols-outlined text-[22px]">arrow_forward</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Supporting Photography Guidance Cards (Aligned with main workspace width) -->
+        <div class="w-full max-w-[1180px] mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          <div class="bg-surface-container-lowest rounded-xl p-4.5 sm:p-5 border border-surface-container-highest flex items-start gap-3.5 shadow-xs transition-all duration-200 hover:border-outline-variant/80">
+            <div class="w-9 h-9 rounded-lg bg-primary-fixed/40 flex items-center justify-center shrink-0 text-primary">
+              <span class="material-symbols-outlined text-[20px]">wb_sunny</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm sm:text-[15px] text-on-surface">Good lighting</h3>
+              <p class="text-xs sm:text-[13px] text-secondary mt-0.5 leading-relaxed">Daylight or bright even lighting reveals subtle surface dents.</p>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-4.5 sm:p-5 border border-surface-container-highest flex items-start gap-3.5 shadow-xs transition-all duration-200 hover:border-outline-variant/80">
+            <div class="w-9 h-9 rounded-lg bg-secondary-container/60 flex items-center justify-center shrink-0 text-secondary">
+              <span class="material-symbols-outlined text-[20px]">crop_free</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm sm:text-[15px] text-on-surface">Wide angle</h3>
+              <p class="text-xs sm:text-[13px] text-secondary mt-0.5 leading-relaxed">Include the entire damaged panel and adjacent body lines.</p>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-4.5 sm:p-5 border border-surface-container-highest flex items-start gap-3.5 shadow-xs transition-all duration-200 hover:border-outline-variant/80">
+            <div class="w-9 h-9 rounded-lg bg-primary-fixed/40 flex items-center justify-center shrink-0 text-primary">
+              <span class="material-symbols-outlined text-[20px]">cleaning_services</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm sm:text-[15px] text-on-surface">Clean surface</h3>
+              <p class="text-xs sm:text-[13px] text-secondary mt-0.5 leading-relaxed">Wipe off heavy mud or dirt so scratches and paint abrasions stay visible.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Privacy & Local Processing Note (Factual, subtle, no unsupported claims) -->
+        <p class="text-xs sm:text-[13px] text-secondary/70 text-center mt-5 sm:mt-6 flex items-center justify-center gap-1.5 mb-1">
+          <span class="material-symbols-outlined text-[16px] text-secondary/60">info</span>
+          <span>Photos are processed for automated vehicle damage analysis</span>
+        </p>
+
+      </div>
+
+      <!-- ====================================================
+           SCREEN 2: ANALYZING / INSPECTION STATE VIEW
+           ==================================================== -->
+      <div id="view-analyzing" class="hidden w-full flex flex-col items-center">
+        
+        <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-surface-container-low shadow-xs mb-2 border border-surface-container-highest">
+          <span class="inline-block w-2 h-2 rounded-full bg-primary animate-ping"></span>
+          <span class="text-[11px] text-primary uppercase tracking-wider font-semibold">Neural Surface Analysis</span>
+        </div>
+
+        <div class="text-center px-4 mb-4">
+          <h1 class="text-[26px] sm:text-[30px] font-bold text-on-surface tracking-tight mb-0.5">
+            Inspecting Your Vehicle
+          </h1>
+          <p class="text-[13px] text-on-surface-variant max-w-md mx-auto">
+            Our vision detector is examining surface panels, lighting, and contours across your car.
+          </p>
+        </div>
+
+        <!-- Primary Analysis Canvas Card -->
+        <div class="w-full bg-surface-container-lowest rounded-2xl p-3 sm:p-4 shadow-sm border border-surface-container-highest relative overflow-hidden">
+          
+          <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-surface-container-high select-none">
+            <img id="analyzing-display-img" alt="Uploaded car ready for AI inspection" class="w-full h-full object-cover object-center transform scale-[1.01]"/>
+            <div class="absolute inset-0 bg-gradient-to-t from-on-surface/30 via-transparent to-surface-container-lowest/10 pointer-events-none"></div>
+
+            <!-- Gentle Animated Scan Sweep Line -->
+            <div id="scanning-sweep" class="absolute inset-x-0 h-20 pointer-events-none opacity-85 transition-all" style="top: 25%;">
+              <div class="w-full h-full bg-gradient-to-b from-primary/0 via-primary-fixed/30 to-primary-container/20 blur-[2px]"></div>
+              <div class="w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80"></div>
+            </div>
+
+            <!-- Floating Scan Tag (Top Right) -->
+            <div class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md shadow-xs flex items-center gap-1.5 border border-surface-container text-[11px]">
+              <span class="material-symbols-outlined text-primary text-[14px] animate-spin">sync</span>
+              <span class="font-medium text-on-surface">Active Scan • YOLOv8</span>
+            </div>
+          </div>
+
+          <!-- Progress Indicators -->
+          <div class="px-1 pt-3 pb-1">
+            <div class="flex items-center justify-between text-[11px] text-on-surface-variant mb-1.5 font-medium">
+              <span class="text-on-surface flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                Deep Diagnostics
+              </span>
+              <span id="scan-progress-percentage" class="font-bold text-primary">68%</span>
+            </div>
+
+            <div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden p-0.5 relative">
+              <div id="scan-progress-bar" class="h-full bg-primary rounded-full transition-all duration-300 relative overflow-hidden" style="width: 68%;">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-surface-container-lowest/40 to-transparent animate-shimmer"></div>
+              </div>
+            </div>
+
+            <div class="mt-3 p-3 rounded-xl bg-surface-container-low flex items-start gap-2.5 border border-surface-container">
+              <div class="w-7 h-7 rounded-full bg-surface-container-lowest flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                <span class="material-symbols-outlined text-primary text-[16px] animate-pulse">auto_awesome</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span id="scan-status-title" class="font-semibold text-[13px] text-on-surface">Running detection pipeline...</span>
+                  <span class="text-[11px] text-outline">Step 2 of 3</span>
+                </div>
+                <p id="scan-status-desc" class="text-[12px] text-on-surface-variant truncate mt-0.5">
+                  Examining exterior for dents, scratches, cracks, and structural damage
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mt-4 flex flex-col items-center">
+          <button type="button" onclick="cancelAnalysis()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all">
+            <span class="material-symbols-outlined text-[15px]">arrow_back</span>
+            Cancel & choose a different photo
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ====================================================
+           SCREEN 3: REFINED RESULTS / DAMAGE ASSESSMENT VIEW
+           (Professional Inspection Report, Clear Hierarchy, Spacious Flow)
+           ==================================================== -->
+      <div id="view-results" class="hidden w-full max-w-[1200px] flex flex-col items-center">
+        
+        <!-- 1. Header: Clean Hierarchy & Controlled Vertical Spacing -->
+        <div class="flex flex-col items-center text-center mb-4 sm:mb-5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Scan Complete</span>
+          <h1 class="text-[26px] sm:text-[32px] lg:text-[38px] font-bold text-on-surface tracking-tight leading-tight">
+            Damage Assessment
+          </h1>
+          <p id="results-headline-subtitle" class="text-sm sm:text-[15px] text-secondary mt-1">
+            Analysis complete • Review detected exterior damage below.
+          </p>
+        </div>
+
+        <!-- 2. PRIMARY FOCAL ELEMENT: Professional Inspection Viewer (500-560px Desktop Height) -->
+        <div class="w-full relative rounded-xl overflow-hidden bg-surface-container-lowest border border-surface-container-highest mb-3 sm:mb-4 shadow-none">
+          <div class="relative w-full h-[380px] sm:h-[460px] lg:h-[520px] flex items-center justify-center bg-surface-container-low/20 overflow-hidden">
+            
+            <!-- Real Annotated Output Image from Backend -->
+            <img id="results-annotated-img" alt="Inspected vehicle showing detection annotations" class="w-full h-full object-contain mx-auto select-none transition-transform duration-200 cursor-pointer p-2 sm:p-3" onclick="toggleZoom()"/>
+            
+            <!-- Original Clean Image (Toggleable fallback) -->
+            <img id="results-clean-img" alt="Original clean vehicle photo" class="hidden w-full h-full object-contain mx-auto select-none transition-transform duration-200 p-2 sm:p-3"/>
+
+            <!-- Floating Overlay Tag (Bottom Left, Subtle & Secondary) -->
+            <div class="absolute bottom-3 left-3 bg-surface-container-lowest/90 px-2.5 py-1 rounded-md shadow-xs flex items-center gap-1.5 border border-surface-container-highest text-xs text-secondary pointer-events-none">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              <span id="overlay-tag-label" class="font-medium text-on-surface">Precision AI Overlay</span>
+            </div>
+
+            <!-- Floating Action Controls (Bottom Right: Zoom & Fullscreen, Subtle) -->
+            <div class="absolute bottom-3 right-3 flex items-center gap-1.5">
+              <button id="btn-zoom-toggle" aria-label="Toggle photo zoom" onclick="toggleZoom()" type="button" class="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-secondary hover:text-on-surface flex items-center justify-center shadow-xs border border-surface-container-highest transition-colors cursor-pointer" title="Toggle zoom">
+                <span id="zoom-icon" class="material-symbols-outlined text-[17px]">zoom_in</span>
+              </button>
+              <button aria-label="View photo fullscreen" onclick="openFullscreenModal()" type="button" class="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-secondary hover:text-on-surface flex items-center justify-center shadow-xs border border-surface-container-highest transition-colors cursor-pointer" title="Open image fullscreen">
+                <span class="material-symbols-outlined text-[17px]">fullscreen</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 3. Overall Condition Summary Row -->
+        <div class="w-full bg-surface-container-lowest rounded-xl p-4 sm:p-4.5 border border-surface-container-highest mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2.5">
+              <span class="text-sm sm:text-[15px] font-semibold text-on-surface">Overall Condition</span>
+              <span id="results-condition-pill" class="inline-flex items-center gap-1.5 bg-primary-fixed/50 text-on-primary-fixed-variant text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                <span id="results-condition-text">Damage Detected</span>
+              </span>
+            </div>
+            <p id="results-condition-description" class="text-xs sm:text-[13px] text-secondary leading-relaxed">
+              Automated visual inspection identified localized damage across inspected panels.
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 self-start sm:self-center shrink-0">
+            <span id="results-model-status" class="text-xs text-secondary bg-surface-container-low px-2.5 py-1 rounded-md border border-surface-container">Vision Model</span>
+          </div>
+        </div>
+
+        <!-- 4. Three Metric Cards: Equal Width, Strong Numbers, Muted Labels -->
+        <div class="w-full grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
+          <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-surface-container-highest flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-secondary font-medium tracking-wide">Total Detections</span>
+            <span id="metric-total-detections" class="text-2xl sm:text-[28px] font-bold text-on-surface mt-1 leading-none">0</span>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-surface-container-highest flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-secondary font-medium tracking-wide">Damaged Area</span>
+            <span id="metric-damage-area" class="text-2xl sm:text-[28px] font-bold text-primary mt-1 leading-none">0.00%</span>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-surface-container-highest flex flex-col items-center justify-center text-center">
+            <span class="text-xs text-secondary font-medium tracking-wide">Avg. Confidence</span>
+            <span id="metric-avg-confidence" class="text-2xl sm:text-[28px] font-bold text-on-surface mt-1 leading-none">0.0%</span>
+          </div>
+        </div>
+
+        <!-- 5. Identified Items Section (Clean Horizontal Inspection Rows) -->
+        <div class="w-full flex flex-col mb-5">
+          <div class="flex items-center justify-between px-1 mb-2.5">
+            <h2 id="results-items-count-heading" class="text-sm sm:text-base font-semibold text-on-surface tracking-tight">Identified Items (0)</h2>
+            <span class="text-xs text-secondary font-normal">Confidence &ge; 25% threshold</span>
+          </div>
+
+          <!-- Dynamic Container for Detection Rows (Unified list with subtle dividers) -->
+          <div id="results-items-container" class="w-full bg-surface-container-lowest rounded-xl border border-surface-container-highest divide-y divide-surface-container-highest overflow-hidden">
+            <!-- Dynamically populated detection rows -->
+          </div>
+        </div>
+
+        <!-- Zero Damage Fallback Card (Visible when total_detections == 0) -->
+        <div id="results-zero-damage-card" class="hidden w-full bg-surface-container-lowest rounded-xl p-6 sm:p-8 border border-surface-container-highest mb-5 text-center">
+          <div class="w-12 h-12 rounded-full bg-primary-fixed/50 text-primary flex items-center justify-center mx-auto mb-2">
+            <span class="material-symbols-outlined text-[24px]">verified</span>
+          </div>
+          <h3 class="font-semibold text-base text-on-surface">No Damage Detected</h3>
+          <p class="text-xs sm:text-sm text-secondary mt-1 max-w-sm mx-auto leading-relaxed">
+            All inspected vehicle panels appear clear, intact, and within standard baseline tolerances.
+          </p>
+        </div>
+
+        <!-- 6. Action Area: Primary CTA & Secondary Controls -->
+        <div class="w-full flex flex-col items-center">
+          
+          <!-- Primary CTA (Full width, prominent forest green) -->
+          <button type="button" onclick="resetToUpload(event)" class="w-full h-13 sm:h-14 rounded-xl bg-primary text-on-primary text-sm sm:text-[15px] font-semibold shadow-xs hover:bg-primary-hover active:bg-[#264e34] transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer">
+            <span class="material-symbols-outlined text-[19px]">add_photo_alternate</span>
+            <span>Analyze Another Photo</span>
+          </button>
+
+          <!-- Secondary Actions (Subtle, balanced, below primary CTA) -->
+          <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5">
+            <button type="button" onclick="downloadJsonResults()" class="h-11 sm:h-12 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface text-xs sm:text-sm font-medium border border-surface-container-highest transition-colors flex items-center justify-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[17px] text-secondary">download</span>
+              <span>Download JSON</span>
+            </button>
+            <button type="button" onclick="openFullscreenModal()" class="h-11 sm:h-12 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface text-xs sm:text-sm font-medium border border-surface-container-highest transition-colors flex items-center justify-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[17px] text-secondary">open_in_full</span>
+              <span>View Fullscreen</span>
+            </button>
+          </div>
+
+          <!-- Subtle Processing Note -->
+          <p class="text-xs text-secondary/70 text-center mt-4 flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-secondary/60">info</span>
+            <span>Photos are processed for automated vehicle damage analysis</span>
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ====================================================
+       FULLSCREEN IMAGE MODAL OVERLAY
+       ==================================================== -->
+  <div id="fullscreen-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative max-w-4xl w-full max-h-[90vh] bg-surface-container-lowest rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+      <div class="px-4 py-3 bg-surface-container-lowest border-b border-surface-container-highest flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+          <span class="font-semibold text-[14px] text-on-surface">Annotated Vehicle Inspection Image</span>
+        </div>
+        <button type="button" onclick="closeFullscreenModal()" class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-colors">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+      <div class="p-4 flex items-center justify-center bg-black/5 overflow-auto max-h-[calc(90vh-60px)]">
+        <img id="modal-annotated-img" src="" alt="Full view of annotated vehicle damage" class="max-h-[75vh] w-auto object-contain mx-auto rounded-lg"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       PERSISTENT FOOTER (Minimal & Visually Quiet)
+       ==================================================== -->
+  <footer class="w-full border-t border-surface-container-highest bg-surface-container-lowest py-3.5 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center sm:text-left text-[11px] text-secondary">
+      <p>
+        <span class="font-medium text-on-surface">Vehicle Damage Scanner</span> — Automated visual inspection
+      </p>
+      <p>
+        Images are processed locally for appraisal
+      </p>
+    </div>
+  </footer>
+
+  <!-- ====================================================
+       FRONTEND APPLICATION JAVASCRIPT & API INTEGRATION
+       ==================================================== -->
+  <script>
+    // Configuration: Relative API endpoints for unified origin hosting
+    const API_HEALTH_URL = '/api/health';
+    const API_DETECT_URL = '/api/detect';
+
+    // Application State
+    let selectedFile = null;
+    let selectedFilePreviewUrl = null;
+    let latestDetectionResult = null;
+    let scanAnimationTimer = null;
+    let isZoomed = false;
+    let abortController = null;
+
+    // Class metadata mapping for clean visual presentation
+    const CLASS_METADATA = {
+      "dent": {
+        label: "Dent",
+        subtitle: "Panel & bodywork contour distortion",
+        icon: "adjust",
+        bgColor: "bg-primary-fixed/50",
+        textColor: "text-primary"
+      },
+      "scratch": {
+        label: "Paint Scratch",
+        subtitle: "Surface paintwork clearcoat abrasion",
+        icon: "brush",
+        bgColor: "bg-tertiary-fixed",
+        textColor: "text-on-tertiary-fixed-variant"
+      },
+      "crack": {
+        label: "Crack",
+        subtitle: "Bumper, skirt, or trim fracture line",
+        icon: "broken_image",
+        bgColor: "bg-error-container",
+        textColor: "text-error"
+      },
+      "glass shatter": {
+        label: "Glass Shatter",
+        subtitle: "Windshield or lamp fracture web",
+        icon: "grain",
+        bgColor: "bg-secondary-container",
+        textColor: "text-secondary"
+      },
+      "lamp broken": {
+        label: "Broken Lamp",
+        subtitle: "Headlight or tail lens housing fracture",
+        icon: "highlight",
+        bgColor: "bg-tertiary-fixed",
+        textColor: "text-tertiary"
+      },
+      "tire flat": {
+        label: "Flat Tire",
+        subtitle: "Wheel pressure deflation or rim contact",
+        icon: "motion_photos_on",
+        bgColor: "bg-primary-fixed/50",
+        textColor: "text-primary"
+      }
+    };
+
+    // Helper: Capitalize
+    function formatClassName(rawName) {
+      if (!rawName) return "Damage";
+      const meta = CLASS_METADATA[rawName.toLowerCase()];
+      if (meta) return meta.label;
+      return rawName.split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
+
+    // Lifecycle Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      checkBackendHealth();
+      initDragAndDrop();
+      setAnalyzeButtonState(false);
+
+      // Support sample query parameter for automated testing and quick previews
+      const urlParams = new URLSearchParams(window.location.search);
+      const sample = urlParams.get('sample');
+      if (sample) {
+        fetch('/samples/' + sample)
+          .then(res => {
+            if (!res.ok) throw new Error('Sample not found: ' + sample);
+            return res.blob();
+          })
+          .then(blob => {
+            const file = new File([blob], sample, { type: blob.type || 'image/jpeg' });
+            processSelectedFile(file);
+          })
+          .catch(err => {
+            console.error('Failed to load sample image:', err);
+          });
+      }
+    });
+
+    // Paste event support (Ctrl+V vehicle photo directly into dropzone)
+    window.addEventListener('paste', (e) => {
+      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+        processSelectedFile(e.clipboardData.files[0]);
+      }
+    });
+
+    // Check Backend /api/health
+    async function checkBackendHealth() {
+      const dot = document.getElementById('header-status-dot');
+      const text = document.getElementById('header-status-text');
+
+      try {
+        const resp = await fetch(API_HEALTH_URL);
+        if (resp.ok) {
+          const data = await resp.json();
+          dot.className = "w-2 h-2 rounded-full bg-primary animate-pulse";
+          text.textContent = "Ready";
+          text.className = "text-[11px] font-medium text-on-surface-variant";
+        } else {
+          throw new Error('Status ' + resp.status);
+        }
+      } catch (err) {
+        console.warn('Backend connection warning:', err);
+        dot.className = "w-2 h-2 rounded-full bg-error";
+        text.textContent = "Offline";
+        text.className = "text-[11px] font-medium text-error";
+      }
+    }
+
+    // Toggle CTA Button Active / Subtle Disabled State
+    function setAnalyzeButtonState(active) {
+      const btn = document.getElementById('btn-analyze');
+      if (!btn) return;
+      if (active) {
+        btn.disabled = false;
+        btn.className = "w-full h-14 sm:h-15 rounded-xl bg-primary hover:bg-primary-hover active:bg-[#1e442c] text-on-primary text-base sm:text-[17px] font-semibold flex items-center justify-center gap-2.5 sm:gap-3 shadow-xs hover:shadow-sm transition-all duration-200 active:scale-[0.99] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+      } else {
+        btn.disabled = true;
+        btn.className = "w-full h-14 sm:h-15 rounded-xl bg-surface-container text-secondary/50 text-base sm:text-[17px] font-semibold flex items-center justify-center gap-2.5 sm:gap-3 border border-surface-container-highest cursor-not-allowed transition-all duration-200 select-none shadow-none focus-visible:outline-none";
+      }
+    }
+
+    // Drag and Drop Handling
+    function initDragAndDrop() {
+      const dropzone = document.getElementById('dropzone');
+
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('drag-over-active');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('drag-over-active');
+        }, false);
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+          processSelectedFile(dt.files[0]);
+        }
+      }, false);
+    }
+
+    // Trigger file chooser
+    function triggerFileInput(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('file-input').click();
+    }
+
+    // Handle File Chooser change
+    function handleFileSelect(event) {
+      const files = event.target.files;
+      if (files && files.length > 0) {
+        processSelectedFile(files[0]);
+      }
+    }
+
+    // Process Selected File
+    function processSelectedFile(file) {
+      dismissError();
+
+      // Check valid extension
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif'];
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      if (!validExtensions.includes(ext)) {
+        showError('Unsupported Image Format', `Please select a valid car image (${validExtensions.join(', ')}).`);
+        return;
+      }
+
+      // Check file size (max 25MB)
+      if (file.size > 25 * 1024 * 1024) {
+        showError('File Too Large', 'Please select an image smaller than 25MB.');
+        return;
+      }
+
+      if (file.size === 0) {
+        showError('Empty File', 'The selected image file is empty.');
+        return;
+      }
+
+      selectedFile = file;
+
+      // Create preview object URL
+      if (selectedFilePreviewUrl) {
+        URL.revokeObjectURL(selectedFilePreviewUrl);
+      }
+      selectedFilePreviewUrl = URL.createObjectURL(file);
+
+      // Populate preview UI
+      document.getElementById('preview-image').src = selectedFilePreviewUrl;
+      document.getElementById('preview-filename').textContent = file.name;
+      
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      const metaEl = document.getElementById('preview-filemeta');
+      if (metaEl) {
+        metaEl.textContent = `${sizeMb} MB`;
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          metaEl.textContent = `${sizeMb} MB • ${tempImg.naturalWidth} × ${tempImg.naturalHeight} px`;
+        };
+        tempImg.src = selectedFilePreviewUrl;
+      }
+
+      // Switch dropzone view to preview overlay with smooth fade-in
+      document.getElementById('dropzone-empty-content').classList.add('hidden');
+      const previewOverlay = document.getElementById('dropzone-preview-overlay');
+      previewOverlay.classList.remove('hidden');
+      previewOverlay.classList.remove('preview-fade-in');
+      void previewOverlay.offsetWidth;
+      previewOverlay.classList.add('preview-fade-in');
+
+      // Adjust dropzone border styling for preview mode
+      const dropzone = document.getElementById('dropzone');
+      dropzone.classList.remove('border-dashed', 'border-2', 'cursor-pointer');
+      dropzone.classList.add('border', 'border-surface-container-highest');
+
+      // Transition CTA button to active forest green
+      setAnalyzeButtonState(true);
+    }
+
+    // Remove Selected Photo
+    function clearSelectedFile(event) {
+      if (event) event.stopPropagation();
+      selectedFile = null;
+      if (selectedFilePreviewUrl) {
+        URL.revokeObjectURL(selectedFilePreviewUrl);
+        selectedFilePreviewUrl = null;
+      }
+      document.getElementById('file-input').value = '';
+
+      const previewOverlay = document.getElementById('dropzone-preview-overlay');
+      previewOverlay.classList.add('hidden');
+      previewOverlay.classList.remove('preview-fade-in');
+      document.getElementById('dropzone-empty-content').classList.remove('hidden');
+
+      const dropzone = document.getElementById('dropzone');
+      dropzone.classList.remove('border', 'border-surface-container-highest');
+      dropzone.classList.add('border-dashed', 'border-2', 'cursor-pointer');
+
+      setAnalyzeButtonState(false);
+      dismissError();
+    }
+
+    // Update Header Pill Navigation State
+    function updateNavPill(activeStep) {
+      const pInspect = document.getElementById('nav-step-inspect');
+      const pAnalyzing = document.getElementById('nav-step-analyzing');
+      const pResults = document.getElementById('nav-step-results');
+
+      [pInspect, pAnalyzing, pResults].forEach(p => {
+        p.className = "px-3.5 py-1 rounded-full font-medium text-on-surface-variant pointer-events-none transition-all";
+      });
+
+      if (activeStep === 'inspect') {
+        pInspect.className = "px-3.5 py-1 rounded-full font-semibold transition-all bg-primary-container text-on-primary-container shadow-xs";
+      } else if (activeStep === 'analyzing') {
+        pAnalyzing.className = "px-3.5 py-1 rounded-full font-semibold transition-all bg-primary-container text-on-primary-container shadow-xs";
+      } else if (activeStep === 'results') {
+        pResults.className = "px-3.5 py-1 rounded-full font-semibold transition-all bg-primary-container text-on-primary-container shadow-xs";
+        pInspect.classList.remove('pointer-events-none');
+        pInspect.classList.add('cursor-pointer');
+      }
+    }
+
+    // Start Analysis (POST /api/detect)
+    async function startAnalysis() {
+      if (!selectedFile) {
+        showError('No Image Selected', 'Please select or drag a vehicle image first.');
+        return;
+      }
+
+      dismissError();
+      updateNavPill('analyzing');
+      document.getElementById('btn-analyze').disabled = true;
+
+      // Switch Views to Screen 2 (Analyzing State)
+      document.getElementById('view-upload').classList.add('hidden');
+      document.getElementById('view-results').classList.add('hidden');
+      document.getElementById('view-analyzing').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Put preview image in analyzing canvas
+      document.getElementById('analyzing-display-img').src = selectedFilePreviewUrl;
+
+      // Start scan line animation
+      startScanSimulation();
+
+      // Send Request to Backend
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      abortController = new AbortController();
+
+      try {
+        const response = await fetch(API_DETECT_URL, {
+          method: 'POST',
+          body: formData,
+          signal: abortController.signal
+        });
+
+        if (!response.ok) {
+          let errorDetail = 'Inference request failed.';
+          try {
+            const errJson = await response.json();
+            if (errJson && errJson.detail) {
+              errorDetail = errJson.detail;
+            }
+          } catch (e) {
+            errorDetail = `Server returned status ${response.status} (${response.statusText})`;
+          }
+          throw new Error(errorDetail);
+        }
+
+        const data = await response.json();
+        latestDetectionResult = data;
+
+        // Finish progress bar smoothly and transition
+        completeScanProgress(() => {
+          renderResults(data);
+        });
+
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+
+        console.error('Detection analysis error:', err);
+        stopScanSimulation();
+
+        // Return to upload screen and display error
+        document.getElementById('view-analyzing').classList.add('hidden');
+        document.getElementById('view-upload').classList.remove('hidden');
+        updateNavPill('inspect');
+        setAnalyzeButtonState(Boolean(selectedFile));
+
+        showError('Analysis Failed', err.message || 'Could not communicate with the vehicle damage detection API. Please make sure the server is running.');
+      }
+    }
+
+    // Cancel ongoing analysis
+    function cancelAnalysis() {
+      if (abortController) {
+        abortController.abort();
+      }
+      stopScanSimulation();
+      document.getElementById('view-analyzing').classList.add('hidden');
+      document.getElementById('view-upload').classList.remove('hidden');
+      updateNavPill('inspect');
+      setAnalyzeButtonState(Boolean(selectedFile));
+    }
+
+    // Scan Line & Progress Bar Simulator
+    function startScanSimulation() {
+      const sweep = document.getElementById('scanning-sweep');
+      const progressBar = document.getElementById('scan-progress-bar');
+      const percentageText = document.getElementById('scan-progress-percentage');
+      const statusTitle = document.getElementById('scan-status-title');
+      const statusDesc = document.getElementById('scan-status-desc');
+
+      let currentPercent = 15;
+      progressBar.style.width = currentPercent + '%';
+      percentageText.textContent = currentPercent + '%';
+
+      let pos = 20;
+      let dir = 1;
+      const sweepInterval = setInterval(() => {
+        pos += 1.5 * dir;
+        if (pos > 75) dir = -1;
+        else if (pos < 20) dir = 1;
+        if (sweep) sweep.style.top = pos + '%';
+      }, 50);
+
+      const progressInterval = setInterval(() => {
+        if (currentPercent < 90) {
+          currentPercent += Math.floor(Math.random() * 8) + 3;
+          if (currentPercent > 90) currentPercent = 90;
+          progressBar.style.width = currentPercent + '%';
+          percentageText.textContent = currentPercent + '%';
+
+          if (currentPercent > 40 && currentPercent < 70) {
+            statusTitle.textContent = "Scanning vehicle surfaces...";
+            statusDesc.textContent = "Evaluating panel reflections, wheel rims, and bumper seams";
+          } else if (currentPercent >= 70) {
+            statusTitle.textContent = "Finalizing inspection...";
+            statusDesc.textContent = "Assembling localized damage bounding boxes and certainty scores";
+          }
+        }
+      }, 350);
+
+      scanAnimationTimer = { sweepInterval, progressInterval };
+    }
+
+    function stopScanSimulation() {
+      if (scanAnimationTimer) {
+        clearInterval(scanAnimationTimer.sweepInterval);
+        clearInterval(scanAnimationTimer.progressInterval);
+        scanAnimationTimer = null;
+      }
+    }
+
+    function completeScanProgress(callback) {
+      stopScanSimulation();
+      const progressBar = document.getElementById('scan-progress-bar');
+      const percentageText = document.getElementById('scan-progress-percentage');
+
+      progressBar.style.width = '100%';
+      percentageText.textContent = '100%';
+
+      setTimeout(() => {
+        callback();
+      }, 300);
+    }
+
+    // Render Results (Screen 3: Damage Assessment)
+    function renderResults(data) {
+      stopScanSimulation();
+      updateNavPill('results');
+
+      // Switch view to Screen 3 (Results)
+      document.getElementById('view-upload').classList.add('hidden');
+      document.getElementById('view-analyzing').classList.add('hidden');
+      document.getElementById('view-results').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Build Annotated Image URL
+      const annotatedImgEl = document.getElementById('results-annotated-img');
+      const cleanImgEl = document.getElementById('results-clean-img');
+
+      const fullAnnotatedUrl = data.annotated_image;
+
+      annotatedImgEl.src = fullAnnotatedUrl;
+      cleanImgEl.src = selectedFilePreviewUrl;
+
+      // Update modal image as well
+      document.getElementById('modal-annotated-img').src = fullAnnotatedUrl;
+
+      // Reset zoom
+      isZoomed = false;
+      annotatedImgEl.style.transform = 'scale(1)';
+      cleanImgEl.style.transform = 'scale(1)';
+      document.getElementById('zoom-icon').textContent = 'zoom_in';
+
+      // 1. Subtitle & Status
+      const subTitleEl = document.getElementById('results-headline-subtitle');
+      const condPill = document.getElementById('results-condition-pill');
+      const condText = document.getElementById('results-condition-text');
+      const condDesc = document.getElementById('results-condition-description');
+      const modelStatus = document.getElementById('results-model-status');
+
+      if (data.has_damage && data.total_detections > 0) {
+        const damageNoun = data.total_detections === 1 ? 'damage detected' : 'damages detected';
+        subTitleEl.textContent = `${data.total_detections} ${damageNoun} • ${Math.round(data.inference_time_ms)} ms`;
+        condText.textContent = data.damage_status;
+        condPill.className = "inline-flex items-center gap-1.5 bg-primary-fixed/50 text-on-primary-fixed-variant text-xs font-semibold px-2.5 py-0.5 rounded-full";
+        const damageNounArea = data.total_detections === 1 ? 'localized damage area.' : 'localized damage areas.';
+        condDesc.textContent = `Automated visual inspection identified ${data.total_detections} ${damageNounArea}`;
+        modelStatus.textContent = `${data.image_width} × ${data.image_height}px`;
+      } else {
+        subTitleEl.textContent = `No damage detected • ${Math.round(data.inference_time_ms)} ms`;
+        condText.textContent = "Clean Vehicle";
+        condPill.className = "inline-flex items-center gap-1.5 bg-surface-container text-secondary text-xs font-semibold px-2.5 py-0.5 rounded-full";
+        condDesc.textContent = "No visible exterior damages were detected exceeding confidence thresholds. All inspected panels appear intact.";
+        modelStatus.textContent = "Clean Baseline";
+      }
+
+      // 2. Metrics Ribbon
+      document.getElementById('metric-total-detections').textContent = data.total_detections;
+      document.getElementById('metric-damage-area').textContent = `${data.damage_area_percentage.toFixed(2)}%`;
+      document.getElementById('metric-avg-confidence').textContent = data.total_detections > 0 
+        ? `${(data.average_confidence * 100).toFixed(1)}%` 
+        : 'N/A';
+
+      // 3. Identified Items List (Clean horizontal inspection rows)
+      const itemsContainer = document.getElementById('results-items-container');
+      const itemsCountHeading = document.getElementById('results-items-count-heading');
+      const zeroDamageCard = document.getElementById('results-zero-damage-card');
+
+      itemsContainer.innerHTML = '';
+      itemsCountHeading.textContent = `Identified Items (${data.total_detections})`;
+
+      if (!data.detections || data.detections.length === 0) {
+        zeroDamageCard.classList.remove('hidden');
+        itemsContainer.classList.add('hidden');
+      } else {
+        zeroDamageCard.classList.add('hidden');
+        itemsContainer.classList.remove('hidden');
+
+        data.detections.forEach((det, idx) => {
+          const meta = CLASS_METADATA[det.class_name.toLowerCase()] || {
+            label: formatClassName(det.class_name),
+            subtitle: "Detected vehicle exterior damage",
+            icon: "auto_fix_high",
+            bgColor: "bg-primary-fixed/50",
+            textColor: "text-primary"
+          };
+
+          const conf = Math.round(det.confidence * 100);
+          const boxArea = det.bounding_box_area ? `${Math.round(det.bounding_box_area).toLocaleString()} px²` : '';
+
+          const row = document.createElement('div');
+          row.className = "w-full p-3.5 sm:p-4 hover:bg-surface-container-low/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+          
+          row.innerHTML = `
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-9 h-9 rounded-lg ${meta.bgColor} ${meta.textColor} flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[19px]">${meta.icon}</span>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-sm sm:text-[15px] text-on-surface">${meta.label}</span>
+                  <span class="text-xs text-secondary font-mono">Box: [${Math.round(det.x1)}, ${Math.round(det.y1)}, ${Math.round(det.x2)}, ${Math.round(det.y2)}]</span>
+                  ${boxArea ? `<span class="text-xs text-secondary">• ${boxArea}</span>` : ''}
+                </div>
+                <div class="mt-1 flex items-center gap-2.5 flex-wrap">
+                  <div class="w-24 sm:w-32 h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+                    <div class="h-full bg-primary rounded-full" style="width: ${conf}%;"></div>
+                  </div>
+                  <span class="text-xs text-on-surface font-medium">${conf}% Confidence</span>
+                </div>
+              </div>
+            </div>
+            <div class="shrink-0 self-end sm:self-center">
+              <span class="text-xs font-semibold text-secondary/80 bg-surface-container-low px-2.5 py-0.5 rounded-md border border-surface-container">
+                #${idx + 1}
+              </span>
+            </div>
+          `;
+          itemsContainer.appendChild(row);
+        });
+      }
+    }
+
+    // Toggle Zoom on Result Image
+    function toggleZoom() {
+      const img = document.getElementById('results-annotated-img');
+      const icon = document.getElementById('zoom-icon');
+      isZoomed = !isZoomed;
+
+      if (isZoomed) {
+        img.style.transform = 'scale(1.3)';
+        icon.textContent = 'zoom_out';
+      } else {
+        img.style.transform = 'scale(1)';
+        icon.textContent = 'zoom_in';
+      }
+    }
+
+    // Open Fullscreen Modal
+    function openFullscreenModal() {
+      if (!latestDetectionResult || !latestDetectionResult.annotated_image) return;
+      const modal = document.getElementById('fullscreen-modal');
+      modal.classList.remove('hidden');
+    }
+
+    // Close Fullscreen Modal
+    function closeFullscreenModal() {
+      const modal = document.getElementById('fullscreen-modal');
+      modal.classList.add('hidden');
+    }
+
+    // Download Structured JSON Results
+    function downloadJsonResults() {
+      if (!latestDetectionResult) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(latestDetectionResult, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `vehicle_damage_report_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Reset Flow back to Screen 1 (Upload)
+    function resetToUpload(event) {
+      if (event) event.preventDefault();
+      clearSelectedFile();
+      updateNavPill('inspect');
+
+      document.getElementById('view-results').classList.add('hidden');
+      document.getElementById('view-analyzing').classList.add('hidden');
+      document.getElementById('view-upload').classList.remove('hidden');
+
+      setAnalyzeButtonState(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Error Banner Helpers
+    function showError(title, message) {
+      const banner = document.getElementById('upload-error-banner');
+      document.getElementById('error-title').textContent = title;
+      document.getElementById('error-message').textContent = message;
+      banner.classList.remove('hidden');
+      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function dismissError() {
+      const banner = document.getElementById('upload-error-banner');
+      if (banner) banner.classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
